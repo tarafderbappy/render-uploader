@@ -1,0 +1,42 @@
+name: Build Render Uploader
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build universal app
+        run: |
+          APP="Render Uploader.app"
+          mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" out
+          for arch in arm64 x86_64; do
+            swiftc -O -parse-as-library -swift-version 5 -target $arch-apple-macos13.0 Sources/main.swift -o out/RU-$arch
+          done
+          lipo -create out/RU-arm64 out/RU-x86_64 -output "$APP/Contents/MacOS/RenderUploader"
+          cp Info.plist "$APP/Contents/"
+          I=out/icon.iconset; mkdir -p $I
+          for s in 16 32 128 256 512; do
+            sips -z $s $s icon_1024.png --out $I/icon_${s}x${s}.png >/dev/null
+            sips -z $((s*2)) $((s*2)) icon_1024.png --out $I/icon_${s}x${s}@2x.png >/dev/null
+          done
+          iconutil -c icns $I -o "$APP/Contents/Resources/AppIcon.icns"
+          codesign --force --deep --sign - "$APP"
+      - name: Make DMG
+        run: |
+          mkdir dmgroot && cp -R "Render Uploader.app" dmgroot/ && ln -s /Applications dmgroot/Applications
+          hdiutil create -volname "Render Uploader" -srcfolder dmgroot -ov -format UDZO "Render-Uploader.dmg"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Render-Uploader
+          path: Render-Uploader.dmg
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --yes --cleanup-tag || true
+          gh release create latest Render-Uploader.dmg --title "Render Uploader" --notes "Open the DMG, drag Render Uploader to Applications."
