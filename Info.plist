@@ -10,6 +10,5 @@
 <key>CFBundleShortVersionString</key><string>1.0</string>
 <key>CFBundleVersion</key><string>1</string>
 <key>LSMinimumSystemVersion</key><string>13.0</string>
-<key>LSUIElement</key><true/>
 <key>NSRemovableVolumesUsageDescription</key><string>Render Uploader reads your finished videos from the external drive.</string>
 </dict></plist>

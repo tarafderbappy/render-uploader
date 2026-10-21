@@ -398,11 +398,29 @@ struct PopoverView: View {
     }
 }
 
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag {
+            for w in NSApp.windows where w.canBecomeMain { w.makeKeyAndOrderFront(nil) }
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        return true
+    }
+}
+
 @main
 struct RenderUploaderApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @StateObject private var engine = Engine()
 
     var body: some Scene {
+        Window("Render Uploader", id: "main") {
+            PopoverView(e: engine)
+        }
+        .windowResizability(.contentSize)
+
         MenuBarExtra {
             PopoverView(e: engine)
         } label: {
